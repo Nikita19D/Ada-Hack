@@ -160,6 +160,142 @@ def test_advise_llm_rewrite_prefers_gemini(client, monkeypatch):
     assert resp.json()["source"] == "gemini"
 
 
+def test_advise_retries_next_gemini_model_on_high_demand(client, monkeypatch):
+    """503 'high demand' on the first model must not abandon the whole chain."""
+    import json as _json
+    import main as _main
+    payload = {"summary": "s", "risks": ["r1", "r2"],
+               "suggestions": [{"action": "a", "why": "w", "tradeoff": "t"}],
+               "what_if": "next"}
+
+    class _Busy:
+        """The failure that motivated the fix: retryable, not a bad model name."""
+        status_code = 503
+
+        def json(self):
+            return {"error": {"message": "This model is currently experiencing high demand."}}
+
+    class _Ok:
+        status_code = 200
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": _json.dumps(payload)}]}}]}
+
+    class _FakeClient:
+        def __init__(self, *a, **k):
+            self.calls = []
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *a):
+            return False
+        async def post(self, url, **k):
+            self.calls.append(url)
+            # 3.8-flash stays saturated for every retry; a later candidate serves us.
+            return _Busy() if "3.8-flash" in url else _Ok()
+
+    import httpx as _httpx
+
+    async def _no_sleep(_attempt):
+        return None
+
+    monkeypatch.setattr(_main, "_sleep_backoff", _no_sleep)
+    monkeypatch.setattr(_httpx, "AsyncClient", _FakeClient)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    p1 = _main.load_projects()[0]
+    resp = client.post("/api/advise", json={
+        "projects": [{"id": p1["id"], "co2": 50000}], "n_simulations": 50})
+    assert resp.status_code == 200
+    data = resp.json()
+    # Served by a later candidate rather than degraded to rule-based advice.
+    assert data["source"] == "gemini"
+    assert data["summary"] == "s"
+
+
+def test_advise_falls_back_to_rules_when_every_model_is_busy(client, monkeypatch):
+    """When all candidates stay saturated the endpoint degrades to rules, not a 500."""
+    import main as _main
+
+    class _Busy:
+        status_code = 503
+
+        def json(self):
+            return {"error": {"message": "high demand"}}
+
+    class _FakeClient:
+        def __init__(self, *a, **k):
+            self.calls = 0
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *a):
+            return False
+        async def post(self, url, **k):
+            self.calls += 1
+            return _Busy()
+
+    import httpx as _httpx
+
+    async def _no_sleep(_attempt):
+        return None
+
+    monkeypatch.setattr(_main, "_sleep_backoff", _no_sleep)
+    monkeypatch.setattr(_httpx, "AsyncClient", _FakeClient)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-3.8-flash")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    p1 = _main.load_projects()[0]
+    resp = client.post("/api/advise", json={
+        "projects": [{"id": p1["id"], "co2": 50000}], "n_simulations": 50})
+    assert resp.status_code == 200
+    assert resp.json()["source"] == "rules"
+
+
+def test_advise_skips_dead_model_and_uses_next_candidate(client, monkeypatch):
+    """A 404 model name skips to the next candidate instead of raising."""
+    import json as _json
+    import main as _main
+    payload = {"summary": "s2", "risks": ["r1"],
+               "suggestions": [{"action": "a", "why": "w", "tradeoff": "t"}],
+               "what_if": "next"}
+
+    class _Gone:
+        status_code = 404
+
+        def json(self):
+            return {"error": {"message": "models/x is not found for API version v1beta."}}
+
+    class _Ok:
+        status_code = 200
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": _json.dumps(payload)}]}}]}
+
+    class _FakeClient:
+        def __init__(self, *a, **k):
+            self.calls = []
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *a):
+            return False
+        async def post(self, url, **k):
+            self.calls.append(url)
+            return _Gone() if "gemini-does-not-exist" in url else _Ok()
+
+    import httpx as _httpx
+    monkeypatch.setattr(_httpx, "AsyncClient", _FakeClient)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.setenv("GEMINI_MODEL", "gemini-does-not-exist")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    p1 = _main.load_projects()[0]
+    resp = client.post("/api/advise", json={
+        "projects": [{"id": p1["id"], "co2": 50000}], "n_simulations": 50})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["source"] == "gemini"
+    assert data["summary"] == "s2"
+
+
 def test_guaranteed_success_test_only_projects():
     """Test-only dummy projects: all credits are delivered above the target."""
     projects = [

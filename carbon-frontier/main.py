@@ -219,54 +219,109 @@ async def _call_openai(client, compact):
     key = os.getenv("OPENAI_API_KEY")
     if not key:
         return None, None
-    try:
-        resp = await client.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": "Bearer " + key},
-            json={"model": os.getenv("ADVISE_MODEL", "gpt-4o-mini"), "temperature": 0.2,
-                  "response_format": {"type": "json_object"},
-                  "messages": [{"role": "system", "content": _ADVISE_SYSTEM},
-                               {"role": "user", "content": _json.dumps(compact)[:6000]}]})
-        text = resp.json()["choices"][0]["message"]["content"]
-        return text, "openai"
-    except Exception:
-        return None, None
+    body = {"model": os.getenv("ADVISE_MODEL", "gpt-4o-mini"), "temperature": 0.2,
+            "response_format": {"type": "json_object"},
+            "messages": [{"role": "system", "content": _ADVISE_SYSTEM},
+                         {"role": "user", "content": _json.dumps(compact)[:6000]}]}
+    for attempt in range(3):
+        try:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": "Bearer " + key}, json=body)
+            status = getattr(resp, "status_code", 200)
+            if status in _RETRY_STATUS:
+                print(f"OpenAI retryable status {status} (attempt {attempt + 1}).")
+                if attempt == 2:
+                    return None, None
+                await _sleep_backoff(attempt)
+                continue
+            if status >= 400:
+                print(f"OpenAI error {_error_message(resp)}; falling back.")
+                return None, None
+            text = resp.json()["choices"][0]["message"]["content"]
+            return text, "openai"
+        except Exception:
+            print("OpenAI call failed; falling back.")
+            return None, None
+    return None, None
+
+
+_GEMINI_DEFAULT = "gemini-3.8-flash"
+_GEMINI_FALLBACKS = ("gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash")
+# Google's docs call for exponential backoff on 429 RESOURCE_EXHAUSTED and
+# 503 UNAVAILABLE. Short and bounded so the /api/advise timeout still holds.
+_RETRY_STATUS = frozenset({408, 429, 500, 502, 503, 504})
 
 
 async def _call_gemini(client, compact):
     key = os.getenv("GEMINI_API_KEY")
     if not key:
         return None, None
-    requested = os.getenv("GEMINI_MODEL", os.getenv("ADVISE_MODEL", "gemini-2.5-flash"))
+    requested = os.getenv("GEMINI_MODEL", os.getenv("ADVISE_MODEL") or _GEMINI_DEFAULT)
     candidates = []
-    for m in [requested, "gemini-2.5-flash", "gemini-1.5-flash", "gemini-3.8-flash"]:
+    for m in [requested, *_GEMINI_FALLBACKS]:
         if m and m not in candidates and "/" not in m and not m.startswith("gpt-"):
             candidates.append(m)
     prompt = (_ADVISE_SYSTEM + " Data: " + _json.dumps(compact)[:6000])
     for model in candidates:
-        try:
-            resp = await client.post(
-                f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-                headers={"x-goog-api-key": key},
-                json={"generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
-                      "contents": [{"parts": [{"text": prompt}]}]})
-            data = resp.json()
+        for attempt in range(3):
+            try:
+                resp = await client.post(
+                    f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                    headers={"x-goog-api-key": key},
+                    json={"generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
+                          "contents": [{"parts": [{"text": prompt}]}]})
+            except Exception as error:
+                # Transport hiccup: retry briefly, then move to the next model.
+                print(f"Gemini call to {model} failed ({type(error).__name__}).")
+                if attempt == 2:
+                    break
+                await _sleep_backoff(attempt)
+                continue
+            status = getattr(resp, "status_code", 200)
+            if status in _RETRY_STATUS:
+                msg = _error_message(resp)
+                print(f"Gemini model {model}: {msg} (retrying, attempt {attempt + 1}).")
+                if attempt == 2:
+                    break
+                await _sleep_backoff(attempt)
+                continue
+            if status >= 400:
+                print(f"Gemini model {model}: {_error_message(resp)}; skipping model.")
+                break
+            try:
+                data = resp.json()
+            except Exception:
+                print(f"Gemini model {model} returned unparseable JSON; skipping.")
+                break
             if isinstance(data, dict) and data.get("error"):
-                msg = str(data["error"].get("message", data["error"]))
-                print(f"Gemini model {model}: {msg}")
-                if "no longer available" in msg or "not found" in msg.lower() or "404" in msg:
-                    continue  # try next candidate model
-                return None, None
+                print(f"Gemini model {model}: {data['error'].get('message', data['error'])}; skipping.")
+                break
             text = _extract_text(data)
             if not text:
                 print(f"Gemini model {model} returned no text; falling back.")
                 return None, None
             print(f"Gemini OK with model {model}.")
             return text, "gemini"
-        except Exception as error:
-            print(f"Gemini call failed ({type(error).__name__}); falling back.")
-            return None, None
     return None, None
+
+
+async def _sleep_backoff(attempt):
+    """Full-jitter exponential backoff, capped so the request stays responsive."""
+    import asyncio
+    import random as _random
+    cap = 0.5 * (2 ** attempt)
+    await asyncio.sleep(_random.uniform(0, cap))
+
+
+def _error_message(resp):
+    try:
+        data = resp.json()
+        if isinstance(data, dict) and data.get("error"):
+            return str(data["error"].get("message", data["error"]))[:200]
+    except Exception:
+        pass
+    return f"HTTP {getattr(resp, 'status_code', '?')}"
 
 
 def _extract_text(data):
@@ -316,7 +371,7 @@ async def _llm_rewrite(rules, risk, projects, cost, target):
                "projects": [{"id": p["id"], "name": p.get("project_name"),
                              "co2": p["co2"], "country": p.get("country")} for p in projects]}
     try:
-        async with httpx.AsyncClient(timeout=15) as client:
+        async with httpx.AsyncClient(timeout=30) as client:
             for caller in (_call_gemini, _call_openai):
                 text, source = await caller(client, compact)
                 if not text:
