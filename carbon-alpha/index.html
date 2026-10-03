@@ -7,8 +7,60 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Carbon Alpha</h1>
-    <p>Placeholder — frontend to be implemented.</p>
+    <header>
+        <h1>Carbon Alpha</h1>
+        <p class="subtitle">Pick carbon-credit projects and see whether they reach the target.</p>
+    </header>
+
+    <main>
+        <!-- LEFT: the project list, filled in by a GET request -->
+        <section class="panel">
+            <h2>1. Pick projects</h2>
+
+            <div class="controls">
+                <label for="limit-input">Show</label>
+                <input id="limit-input" type="number" value="50" min="1" max="500">
+                <label for="limit-input">projects</label>
+                <button id="load-btn">Load</button>
+                <button id="clear-btn" class="secondary">Clear ticks</button>
+            </div>
+
+            <p id="projects-status" class="status">Loading projects...</p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Credits (tCO2e)</th>
+                            <th>Type</th>
+                            <th>Country</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projects-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- RIGHT: the result, filled in by a POST request -->
+        <section class="panel">
+            <h2>2. Portfolio result</h2>
+            <button id="calc-btn">Calculate portfolio</button>
+            <div id="portfolio-result" class="result">Tick some projects, then press calculate.</div>
+
+            <div id="detail-panel" class="detail hidden">
+                <h3>Project details (GET /api/projects/{id})</h3>
+                <div id="detail-body"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Data comes from optiver.xlsx. That file has no price column, so cost shows as unknown.</p>
+    </footer>
+
     <script src="app.js"></script>
 </body>
 </html>
