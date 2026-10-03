@@ -6,6 +6,8 @@
     const SVG_NS = "http://www.w3.org/2000/svg";
     const PALETTE = ["#315c49", "#758d72", "#b48743", "#9a725f", "#536d7a", "#9b9b70", "#765f79", "#af866b"];
     const runButton = document.getElementById("run-risk-test");
+    const adviseButton = document.getElementById("advise-btn");
+    const adviseResults = document.getElementById("advise-results");
     const stressButton = document.getElementById("break-portfolio");
     const selectionMessage = document.getElementById("risk-selection-message");
     const runMessage = document.getElementById("risk-run-message");
@@ -20,6 +22,7 @@
     let portfolioRevision = 0;
     let integration = null;
     let riskRequestRunning = false;
+    let adviseRunning = false;
     let stressRequestRunning = false;
     let hasSimulation = false;
 
@@ -716,8 +719,9 @@
     }
 
     function updateButtonStates() {
-        const busy = riskRequestRunning || stressRequestRunning;
+        const busy = riskRequestRunning || stressRequestRunning || adviseRunning;
         runButton.disabled = selectedProjects.length === 0 || busy || !budgetIsValid();
+        adviseButton.disabled = selectedProjects.length === 0 || busy || !budgetIsValid();
         stressButton.disabled = busy || !budgetIsValid();
         if (riskRequestRunning) {
             runMessage.textContent = "Testing 5,000 scenarios…";
@@ -732,6 +736,8 @@
 
     function clearSimulationResults() {
         hasSimulation = false;
+        adviseResults.replaceChildren();
+        adviseResults.hidden = true;
         setMetricValues(null);
         document.getElementById("risk-histogram").replaceChildren();
         document.getElementById("confidence-chart").replaceChildren();
@@ -1000,6 +1006,46 @@
         updateProjectDetails();
     }
 
+    function renderAdvise(result) {
+        adviseResults.replaceChildren();
+        const safe = (v) => (typeof v === "string" && v.trim() ? v : "—");
+        const risks = Array.isArray(result.risks) ? result.risks : [];
+        const suggestions = Array.isArray(result.suggestions) ? result.suggestions : [];
+        const title = document.createElement("h3");
+        title.textContent = "Portfolio advice";
+        adviseResults.append(title);
+        const summary = document.createElement("p");
+        summary.textContent = safe(result.summary);
+        adviseResults.append(summary);
+        const riskList = document.createElement("ul");
+        risks.slice(0, 2).forEach((r) => {
+            const li = document.createElement("li");
+            li.textContent = typeof r === "string" ? r : JSON.stringify(r);
+            riskList.append(li);
+        });
+        adviseResults.append(riskList);
+        const sugList = document.createElement("ol");
+        suggestions.slice(0, 3).forEach((s) => {
+            const li = document.createElement("li");
+            li.textContent = `${safe(s.action)} Why: ${safe(s.why)} Tradeoff: ${safe(s.tradeoff)}`;
+            sugList.append(li);
+        });
+        adviseResults.append(sugList);
+        const whatif = document.createElement("p");
+        whatif.textContent = "Try next: " + safe(result.what_if);
+        adviseResults.append(whatif);
+        const badge = document.createElement("span");
+        badge.className = "advise-source";
+        badge.textContent = result.source === "rules" || result.source === "rules-fallback"
+            ? "Rule-based" : result.source === "gemini" ? "Gemini AI" : "AI rewrite";
+        adviseResults.append(badge);
+        const disc = document.createElement("p");
+        disc.className = "advise-disclaimer";
+        disc.textContent = result.disclaimer || "Synthetic data; Monte Carlo numbers decide.";
+        adviseResults.append(disc);
+        adviseResults.hidden = false;
+    }
+
     async function apiRequest(path, payload) {
         const response = await fetch(path, payload ? {
             method: "POST",
@@ -1027,7 +1073,7 @@
             if (!Array.isArray(data.projects) || !data.projects.length) throw new Error("No projects found in the challenge workbook.");
             catalogueProjects = data.projects;
             document.getElementById("catalogue-status").textContent =
-                `${formatNumber(catalogueProjects.length)} projects loaded from the supplied challenge sheet. Prices and risk ratings are synthetic challenge inputs.`;
+                `${formatNumber(catalogueProjects.length)} projects loaded from the sheet.`;
             ["project-search", "project-picker", "project-quantity", "example-portfolio"].forEach(id => {
                 document.getElementById(id).disabled = false;
             });
@@ -1064,6 +1110,27 @@
         setSelectedProjects([...selectedProjects.filter(p => p.id !== project.id), { ...project, co2: combined }]);
     });
     document.getElementById("clear-portfolio").addEventListener("click", () => setSelectedProjects([]));
+    adviseButton.addEventListener("click", async () => {
+        clearError();
+        let payload;
+        try {
+            validateProjects(selectedProjects);
+            payload = requestPayload(selectedProjects, TARGET);
+        } catch (error) { showError(error.message); return; }
+        adviseRunning = true;
+        updateButtonStates();
+        adviseButton.textContent = "Advising…";
+        try {
+            const result = await apiRequest("/api/advise", payload);
+            renderAdvise(result);
+        } catch (error) {
+            showError(error.message || "Advice is unavailable.");
+        } finally {
+            adviseRunning = false;
+            adviseButton.textContent = "Advise me";
+            updateButtonStates();
+        }
+    });
     budgetInput.addEventListener("input", () => {
         portfolioRevision += 1;
         clearSimulationResults();

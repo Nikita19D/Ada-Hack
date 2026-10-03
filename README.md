@@ -91,7 +91,7 @@ flowchart TB
 ```
 Ada-Hack/
 |-- README.md               <- you are here (big picture)
-|-- carbon-alpha/
+|-- carbon-frontier/
     |-- main.py             <- server + workbook + validation
     |-- simulation.py       <- simulate_portfolio() + stress_once()
     |-- index.html / app.js / style.css <- UI
@@ -253,7 +253,7 @@ flowchart TD
 ## 4. Run It Yourself (2 minutes)
 
 ```powershell
-cd carbon-alpha
+cd carbon-frontier
 python -m pip install -r requirements.txt
 python main.py
 # open http://127.0.0.1:8000 - keep terminal running, Ctrl+C to stop
@@ -271,7 +271,7 @@ Try this:
 Run tests:
 
 ```powershell
-python -m pytest -q carbon-alpha/test_simulation.py
+python -m pytest -q carbon-frontier/test_simulation.py
 ```
 
 ---
@@ -289,10 +289,10 @@ If the app/API is down, do not guess - say what could not be calculated.
 
 ## 6. Where to Look in Code
 
-* Risk math -> carbon-alpha/simulation.py -> simulate_portfolio(), stress_once()
-* Workbook -> API -> carbon-alpha/main.py -> load_projects(), checked_portfolio()
-* UI + charts -> carbon-alpha/app.js (window.CarbonFrontierPortfolioRisk) + index.html
-* Deep docs + reusable AI prompt -> carbon-alpha/README.md
+* Risk math -> carbon-frontier/simulation.py -> simulate_portfolio(), stress_once()
+* Workbook -> API -> carbon-frontier/main.py -> load_projects(), checked_portfolio()
+* UI + charts -> carbon-frontier/app.js (window.CarbonFrontierPortfolioRisk) + index.html
+* Deep docs + reusable AI prompt -> carbon-frontier/README.md
 
 Dataset: [Optiver challenge sheet](https://docs.google.com/spreadsheets/d/1d3YKqXgVyYUkYA9aYVlmE6ryc5MrrasY/edit) - check Berkeley's licence before redistributing data outside the event.
 

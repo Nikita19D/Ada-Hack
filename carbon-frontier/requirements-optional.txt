@@ -1,0 +1,6 @@
+# Optional: only needed for `python main.py --ngrok`
+pyngrok>=7.2.0
+# Optional: only needed for AI rewrite in POST /api/advise (rules work without it).
+# Gemini (tried first): set GEMINI_API_KEY from https://aistudio.google.com/apikey
+#   and optionally GEMINI_MODEL=gemini-2.0-flash
+# OpenAI (fallback): set OPENAI_API_KEY and optionally ADVISE_MODEL=gpt-4o-mini

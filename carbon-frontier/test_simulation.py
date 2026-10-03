@@ -76,7 +76,7 @@ def test_api_rejects_invalid_portfolios(client, kind):
     elif kind == "over_budget": payload["budget"] = 1
     elif kind == "negative": purchase["co2"] = -1
     elif kind == "wrong_target": payload["target"] = 1
-    for path in ("/api/risk", "/api/stress"):
+    for path in ("/api/risk", "/api/stress", "/api/advise"):
         assert client.post(path, json=payload).status_code == 422
 
 
@@ -107,6 +107,57 @@ def test_end_to_end_real_challenge_portfolio(client):
     scenario = stress.json()
     assert scenario["total_delivered"] == sum(p["delivered_co2"] for p in scenario["projects"])
     assert scenario["target_reached"] == (scenario["total_delivered"] >= 100000)
+
+
+def test_advise_rules_and_endpoint(client):
+    from advise import advise_rules
+    from main import load_projects
+    p1, p2 = load_projects()[0], load_projects()[1]
+    selected = [{**p1, "co2": 90000}, {**p2, "co2": 10000}]
+    risk = {"success_probability": 0.4, "expected_co2": 90000.0,
+            "simulation_results": [80000.0] * 100}
+    rules = advise_rules(selected, risk, 500000.0)
+    assert rules["risks"] and 1 <= len(rules["suggestions"]) <= 3
+    assert set(rules) >= {"summary", "risks", "suggestions", "what_if", "metrics"}
+    resp = client.post("/api/advise", json={
+        "projects": [{"id": p1["id"], "co2": 50000}], "n_simulations": 200})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["source"] == "rules"  # no GEMINI/OPENAI key in tests
+    assert data["suggestions"] and data["metrics"]["nominal_co2"] == 50000
+
+
+def test_advise_llm_rewrite_prefers_gemini(client, monkeypatch):
+    import json as _json
+    import main as _main
+    payload = {"summary": "s", "risks": ["r1", "r2"],
+               "suggestions": [{"action": "a", "why": "w", "tradeoff": "t"}],
+               "what_if": "next"}
+
+    class _FakeResp:
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": _json.dumps(payload)}]}}]}
+
+    class _FakeClient:
+        def __init__(self, *a, **k):
+            self.calls = []
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *a):
+            return False
+        async def post(self, url, **k):
+            self.calls.append(url)
+            return _FakeResp()
+
+    import httpx as _httpx
+    monkeypatch.setattr(_httpx, "AsyncClient", _FakeClient)
+    monkeypatch.setenv("GEMINI_API_KEY", "test-key")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    p1 = _main.load_projects()[0]
+    resp = client.post("/api/advise", json={
+        "projects": [{"id": p1["id"], "co2": 50000}], "n_simulations": 50})
+    assert resp.status_code == 200
+    assert resp.json()["source"] == "gemini"
 
 
 def test_guaranteed_success_test_only_projects():

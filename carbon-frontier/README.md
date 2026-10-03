@@ -15,7 +15,7 @@ impact.
 From the repository root in PowerShell:
 
 ```powershell
-cd carbon-alpha
+cd carbon-frontier
 python -m pip install -r requirements.txt
 python main.py
 ```
@@ -89,6 +89,11 @@ risk values from the workbook rather than trusting browser-supplied values.
 - `GET /api/projects` returns the catalogue, target, maximum budget, and source.
 - `POST /api/risk` runs the portfolio simulation.
 - `POST /api/stress` generates one stress scenario.
+- `POST /api/advise` explains the result in plain words: summary, 2 risks,
+  up to 3 suggestions, what to try next. Rule-based by default
+  (`source: rules`); with `GEMINI_API_KEY` (first) or `OPENAI_API_KEY`
+  (fallback) set, an LLM rewrites the wording only
+  (`source: gemini|openai`). Monte Carlo numbers always decide.
 
 The existing browser integration is exposed as
 `window.CarbonFrontierPortfolioRisk`. It includes `setSelectedProjects(projects)`,
@@ -100,7 +105,7 @@ The page's built-in connection calls the same-origin API endpoints above.
 From the repository root, install dependencies as shown above, then run:
 
 ```powershell
-python -m pytest -q carbon-alpha\test_simulation.py
+python -m pytest -q carbon-frontier\test_simulation.py
 ```
 
 The tests cover simulation outcomes, input validation, buffer recovery, and
