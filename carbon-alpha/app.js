@@ -1000,8 +1000,10 @@
 
     async function apiRequest(path, payload) {
         const response = await fetch(path, payload ? {
-            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
-        } : {});
+            method: "POST",
+            headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+            body: JSON.stringify(payload),
+        } : { headers: { "ngrok-skip-browser-warning": "true" } });
         let result;
         try { result = await response.json(); }
         catch { throw new Error("Calculation service not found. Run python main.py and open http://127.0.0.1:8000."); }

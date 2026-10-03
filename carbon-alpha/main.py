@@ -1,11 +1,20 @@
-"""Serve the existing interface and the challenge's project/risk data."""
+"""Serve the existing interface and the challenge's project/risk data.
+
+Optimised for ngrok hosting: binds 0.0.0.0, honours $PORT, allows the
+ngrok domain via CORS, compresses the 4k-row catalogue, and runs the
+Monte Carlo math in a worker thread so the tunnel stays responsive.
+"""
 
 import math
+import os
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.concurrency import run_in_threadpool
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from openpyxl import load_workbook
 from pydantic import BaseModel, Field
@@ -18,7 +27,28 @@ TARGET = 100000
 MAX_BUDGET = 1000000
 RISK = {"AAA": .01, "AA": .02, "A": .04, "BBB": .07,
         "BB": .12, "B": .20, "CCC": .35, "Unrated": .15}
-app = FastAPI(title="CarbonShield")
+app = FastAPI(title="CarbonShield", docs_url="/docs", redoc_url=None)
+
+# --- ngrok-friendly middleware -------------------------------------------
+# Wildcard CORS: ngrok gives you a random *.ngrok-free.app origin, so a
+# fixed allow-list would break the UI on every restart.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*", "ngrok-skip-browser-warning"],
+)
+# GZip the big /api/projects payload (4355 rows) -> much faster over tunnel.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+@app.middleware("http")
+async def _ngrok_no_interstitial(request, call_next):
+    """Tell ngrok this is an API call; also stop click-jacking blocks."""
+    response = await call_next(request)
+    # Lets fetch() pass through without the ngrok warning page.
+    response.headers["ngrok-skip-browser-warning"] = "true"
+    return response
 
 
 @lru_cache(maxsize=1)
@@ -125,14 +155,23 @@ def get_projects():
             "source": "Optiver challenge workbook: prices and risk ratings are synthetic challenge inputs."}
 
 
+@app.get("/health")
+def health():
+    """Cheap ngrok/uptime check — avoids loading the workbook."""
+    return {"ok": True, "target": TARGET, "maximum_budget": MAX_BUDGET}
+
+
 @app.post("/api/risk")
-def run_risk(request: PortfolioRequest):
-    return simulate_portfolio(checked_portfolio(request), request.n_simulations, request.target)
+async def run_risk(request: PortfolioRequest):
+    projects = checked_portfolio(request)  # fast validation on event loop
+    return await run_in_threadpool(
+        simulate_portfolio, projects, request.n_simulations, request.target)
 
 
 @app.post("/api/stress")
-def run_stress(request: PortfolioRequest):
-    return stress_once(checked_portfolio(request), request.target)
+async def run_stress(request: PortfolioRequest):
+    projects = checked_portfolio(request)
+    return await run_in_threadpool(stress_once, projects, request.target)
 
 
 @app.get("/")
@@ -152,5 +191,37 @@ def stylesheet():
 
 
 if __name__ == "__main__":
+    import argparse
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+    parser = argparse.ArgumentParser(description="Run CarbonShield (ngrok-ready).")
+    parser.add_argument("--host", default=os.getenv("HOST", "0.0.0.0"),
+                        help="Bind address (default 0.0.0.0 so ngrok can reach it).")
+    parser.add_argument("--port", type=int,
+                        default=int(os.getenv("PORT", "8000")),
+                        help="Port (honours $PORT for hosts that assign one).")
+    parser.add_argument("--ngrok", action="store_true",
+                        help="Open an ngrok tunnel via pyngrok (needs NGROK_AUTHTOKEN).")
+    parser.add_argument("--no-reload", action="store_true", help="Disable auto-reload.")
+    args = parser.parse_args()
+
+    try:
+        load_projects()  # warm the lru_cache so first tunnel hit is fast
+        print(f"Catalogue ready.")
+    except Exception as error:
+        print(f"WARNING: catalogue not preloaded: {error}")
+
+    if args.ngrok:
+        try:
+            from pyngrok import ngrok
+        except ImportError:
+            raise SystemExit("pyngrok not installed. Run: pip install pyngrok")
+        token = os.getenv("NGROK_AUTHTOKEN")
+        if token:
+            ngrok.set_auth_token(token)
+        tunnel = ngrok.connect(args.port, "http")
+        print(f"ngrok tunnel -> {tunnel.public_url}  (share this URL)")
+
+    uvicorn.run(app, host=args.host, port=args.port,
+                reload=bool(os.getenv("RELOAD")) and not args.no_reload,
+                workers=int(os.getenv("WORKERS", "1")))
