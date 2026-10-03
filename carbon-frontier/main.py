@@ -27,7 +27,7 @@ TARGET = 100000
 MAX_BUDGET = 1000000
 RISK = {"AAA": .01, "AA": .02, "A": .04, "BBB": .07,
         "BB": .12, "B": .20, "CCC": .35, "Unrated": .15}
-app = FastAPI(title="CarbonShield", docs_url="/docs", redoc_url=None)
+app = FastAPI(title="Carbon Frontier", docs_url="/docs", redoc_url=None)
 
 # --- ngrok-friendly middleware -------------------------------------------
 # Wildcard CORS: ngrok gives you a random *.ngrok-free.app origin, so a
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     import argparse
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="Run CarbonShield (ngrok-ready).")
+    parser = argparse.ArgumentParser(description="Run Carbon Frontier (ngrok-ready).")
     parser.add_argument("--host", default=os.getenv("HOST", "0.0.0.0"),
                         help="Bind address (default 0.0.0.0 so ngrok can reach it).")
     parser.add_argument("--port", type=int,
@@ -221,6 +221,10 @@ if __name__ == "__main__":
             ngrok.set_auth_token(token)
         tunnel = ngrok.connect(args.port, "http")
         print(f"ngrok tunnel -> {tunnel.public_url}  (share this URL)")
+
+    print(f"Serving Carbon Frontier on {args.host}:{args.port} "
+          f"-> open http://127.0.0.1:{args.port} in your browser "
+          f"(0.0.0.0 is the bind address, not a browsable URL).")
 
     uvicorn.run(app, host=args.host, port=args.port,
                 reload=bool(os.getenv("RELOAD")) and not args.no_reload,

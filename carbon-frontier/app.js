@@ -893,7 +893,7 @@
     runButton.addEventListener("click", runRiskTest);
     stressButton.addEventListener("click", runStressTest);
 
-    window.CarbonShieldPortfolioRisk = {
+    window.CarbonFrontierPortfolioRisk = {
         setSelectedProjects,
         connect: (callbacks) => {
             integration = callbacks;
@@ -905,6 +905,8 @@
         },
         renderStressResult,
     };
+    // Backward compatibility: previous release exposed CarbonShield name.
+    window.CarbonShieldPortfolioRisk = window.CarbonFrontierPortfolioRisk;
 
     // Same-origin bridge: main.py serves this page and both calculation endpoints.
     let catalogueProjects = [];
@@ -1030,7 +1032,7 @@
                 document.getElementById(id).disabled = false;
             });
             filterProjects();
-            window.CarbonShieldPortfolioRisk.connect({
+            window.CarbonFrontierPortfolioRisk.connect({
                 simulatePortfolio: (projects, count, target) => apiRequest("/api/risk", requestPayload(projects, target, count)),
                 stressOnce: (projects, target) => apiRequest("/api/stress", requestPayload(projects, target)),
             });

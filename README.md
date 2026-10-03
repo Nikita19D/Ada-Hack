@@ -1,7 +1,7 @@
-# CarbonShield - Understand Carbon-Credit Risk in Simple Terms
+# Carbon Frontier - Understand Carbon-Credit Risk in Simple Terms
 
 > **One-line idea:** You have **$1,000,000** to buy carbon credits and you must
-> **deliver 100,000 tCO2e**. Projects can fail. CarbonShield lets you build a
+> **deliver 100,000 tCO2e**. Projects can fail. Carbon Frontier lets you build a
 > portfolio and test it against **5,000 possible futures** before spending real money.
 
 > NOTE: Prices and risk ratings are **synthetic challenge data** - not market
@@ -19,7 +19,7 @@ Imagine buying apples for a big party:
 * Some farms sometimes **lose your apples** (project failure / reversal).
 * Some farms have an **insurance box** (buffer pool) that gives back half your apples if they fail.
 
-**CarbonShield answers:**
+**Carbon Frontier answers:**
 
 > "If I buy from these farms, what are my chances of still having enough
 > apples for the party?"
@@ -291,7 +291,7 @@ If the app/API is down, do not guess - say what could not be calculated.
 
 * Risk math -> carbon-alpha/simulation.py -> simulate_portfolio(), stress_once()
 * Workbook -> API -> carbon-alpha/main.py -> load_projects(), checked_portfolio()
-* UI + charts -> carbon-alpha/app.js (window.CarbonShieldPortfolioRisk) + index.html
+* UI + charts -> carbon-alpha/app.js (window.CarbonFrontierPortfolioRisk) + index.html
 * Deep docs + reusable AI prompt -> carbon-alpha/README.md
 
 Dataset: [Optiver challenge sheet](https://docs.google.com/spreadsheets/d/1d3YKqXgVyYUkYA9aYVlmE6ryc5MrrasY/edit) - check Berkeley's licence before redistributing data outside the event.

@@ -1,6 +1,6 @@
-# CarbonShield
+# Carbon Frontier
 
-CarbonShield is a small browser-based portfolio workspace for exploring
+Carbon Frontier is a small browser-based portfolio workspace for exploring
 carbon-credit project purchases and estimating delivery risk. The page is
 served by a local FastAPI service. It reads the supplied challenge workbook,
 lets you choose projects and purchase quantities within a budget, and displays
@@ -91,7 +91,7 @@ risk values from the workbook rather than trusting browser-supplied values.
 - `POST /api/stress` generates one stress scenario.
 
 The existing browser integration is exposed as
-`window.CarbonShieldPortfolioRisk`. It includes `setSelectedProjects(projects)`,
+`window.CarbonFrontierPortfolioRisk`. It includes `setSelectedProjects(projects)`,
 `connect({ simulatePortfolio, stressOnce })`, and `renderStressResult(result)`.
 The page's built-in connection calls the same-origin API endpoints above.
 
@@ -109,9 +109,9 @@ the HTTP project/risk integration.
 ## Reusable prompt
 
 Use this prompt when asking someone or an AI assistant to help operate or
-review the workspace. Open CarbonShield at <http://127.0.0.1:8000> first.
+review the workspace. Open Carbon Frontier at <http://127.0.0.1:8000> first.
 
-> Help me use CarbonShield to review my selected carbon-credit portfolio.
+> Help me use Carbon Frontier to review my selected carbon-credit portfolio.
 > Use only the projects and prices loaded from the supplied challenge workbook
 > and the results returned by the running application. Do not invent project
 > data, probabilities, simulation results, or environmental claims. Help me
