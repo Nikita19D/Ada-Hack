@@ -3,12 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carbon Alpha</title>
+    <title>CarbonShield | Portfolio risk</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Carbon Alpha</h1>
-    <p>Placeholder — frontend to be implemented.</p>
+    <main>
+        <header class="page-header">
+            <p class="eyebrow">CarbonShield</p>
+        </header>
+
+        <section class="risk-panel" aria-labelledby="risk-title">
+            <div class="section-heading">
+                <div>
+                    <h1 id="risk-title">Portfolio risk</h1>
+                    <p>Estimate whether your selected credits still reach 100,000 tCO2e if projects fail.</p>
+                </div>
+            </div>
+
+            <section class="builder-section" aria-labelledby="builder-title">
+                <h2 id="builder-title" class="subsection-title">Build your portfolio</h2>
+                <p id="catalogue-status" class="chart-caption" role="status">Loading challenge projects…</p>
+                <div class="builder-controls">
+                    <label>Budget (USD · maximum $1,000,000)
+                        <input id="portfolio-budget" type="number" min="0.01" max="1000000" step="0.01" value="1000000">
+                    </label>
+                    <label>Search by name, country or type
+                        <input id="project-search" type="search" placeholder="e.g. India or forestry" disabled>
+                    </label>
+                    <label class="project-field">Project
+                        <select id="project-picker" disabled><option value="">Loading projects…</option></select>
+                    </label>
+                    <label>Credits to buy (tCO2e)
+                        <input id="project-quantity" type="number" min="0.01" step="0.01" value="50000" disabled>
+                    </label>
+                </div>
+                <p id="project-details" class="chart-caption">Select a project to see its price, rating and available credits.</p>
+                <div class="builder-actions">
+                    <button id="add-project" type="button" disabled>Add project</button>
+                    <button id="example-portfolio" class="secondary-button" type="button" disabled>Load example portfolio</button>
+                    <button id="clear-portfolio" class="secondary-button" type="button" disabled>Clear</button>
+                </div>
+                <p id="builder-message" class="chart-caption" role="status">Add projects, then run 5,000 possible futures below.</p>
+                <div class="portfolio-table-wrap" id="selected-projects-wrap" hidden>
+                    <table class="portfolio-table">
+                        <thead><tr><th>Project / country</th><th>Rating</th><th>Credits</th><th>Cost (USD)</th><th></th></tr></thead>
+                        <tbody id="selected-projects-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="overview-section" aria-labelledby="overview-title">
+                <h2 id="overview-title" class="subsection-title">Portfolio overview</h2>
+                <div class="overview-metrics">
+                    <div class="overview-metric">
+                        <span>Selected projects</span>
+                        <strong id="overview-project-count">—</strong>
+                    </div>
+                    <div class="overview-metric">
+                        <span>Purchased credits</span>
+                        <strong id="overview-purchased-credits">—</strong>
+                    </div>
+                    <div class="overview-metric">
+                        <span>Target</span>
+                        <strong>100,000 tCO2e</strong>
+                    </div>
+                    <div class="overview-metric">
+                        <span>Total cost</span>
+                        <strong id="overview-total-cost">—</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="allocation-section" aria-labelledby="allocation-title">
+                <h2 id="allocation-title" class="subsection-title">Portfolio allocation</h2>
+                <div id="allocation-empty" class="empty-state">Select projects to see your allocation.</div>
+                <div id="allocation-zero" class="empty-state" hidden>
+                    Selected projects have no purchased credits to allocate.
+                </div>
+                <div id="allocation-content" class="allocation-content" hidden>
+                    <div id="allocation-donut" class="allocation-donut"
+                         role="img" aria-label="Selected credit allocation by project."></div>
+                    <ul id="allocation-legend" class="allocation-legend" aria-label="Allocation by project"></ul>
+                </div>
+            </section>
+
+            <p id="risk-selection-message" class="status-message" role="status">
+                Select projects to calculate portfolio risk.
+            </p>
+            <div class="risk-actions">
+                <button id="run-risk-test" type="button">Run risk test</button>
+                <p id="risk-run-message" class="quiet-message">Run risk test.</p>
+            </div>
+            <p id="risk-error" class="error-message" role="alert" hidden></p>
+
+            <div class="risk-metrics" aria-label="Portfolio risk metrics">
+                <div class="metric">
+                    <h3>Target success</h3>
+                    <p id="target-success">—</p>
+                    <small>Simulations reaching 100,000</small>
+                </div>
+                <div class="metric">
+                    <h3>Expected delivery</h3>
+                    <p id="expected-delivery">—</p>
+                    <small>Average across simulations</small>
+                </div>
+                <div class="metric">
+                    <h3>Shortfall risk</h3>
+                    <p id="shortfall-risk">—</p>
+                    <small>Simulations below 100,000</small>
+                </div>
+            </div>
+            <p class="model-assumption">Challenge prices and risk ratings are synthetic, not market forecasts. This simplified model assumes independent failures; shared country, developer and other risks are not modelled. Buffer pools recover half the credits when a project fails.</p>
+
+            <div id="risk-chart-section" class="chart-section" hidden>
+                <h3>Simulated delivery</h3>
+                <div id="risk-histogram" class="histogram" role="img"
+                     aria-label="Histogram of simulated portfolio deliveries compared with the target."></div>
+                <p class="chart-explanation">Below 100,000 misses the target. At or above 100,000 reaches it.</p>
+                <section class="confidence-section" aria-labelledby="confidence-title">
+                    <h3 id="confidence-title">How ambitious can your target be?</h3>
+                    <p class="chart-caption">Higher targets are harder to reach. This curve comes from your simulated outcomes.</p>
+                    <div id="confidence-chart" class="confidence-chart" role="img"
+                         aria-label="Estimated chance of delivering at least each target, calculated from the portfolio simulation."></div>
+                </section>
+            </div>
+
+            <div id="stress-section" class="stress-section" hidden>
+                <button id="break-portfolio" class="secondary-button" type="button">Break my portfolio</button>
+                <div id="stress-results" hidden></div>
+            </div>
+
+            <p id="risk-integration-note" class="integration-note">
+                Connecting to the calculation service. Start this app with <code>python main.py</code>
+                and open <code>http://127.0.0.1:8000</code>, not a separate HTML preview.
+            </p>
+        </section>
+    </main>
     <script src="app.js"></script>
 </body>
 </html>

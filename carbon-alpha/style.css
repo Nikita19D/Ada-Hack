@@ -1,2 +1,420 @@
-/* carbon-alpha/style.css
-   Placeholder — styles to be implemented. */
+:root {
+    color-scheme: light;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #202923;
+    background: #f7f6f1;
+    font-synthesis: none;
+    font-optical-sizing: auto;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    background: #f7f6f1;
+}
+
+main {
+    width: min(100% - 36px, 1080px);
+    margin: 28px auto 52px;
+}
+
+.page-header {
+    margin-bottom: 15px;
+}
+
+.eyebrow {
+    margin: 0;
+    color: #315c49;
+    font-size: 0.77rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+    margin-top: 0;
+}
+
+.risk-panel {
+    padding: 25px 28px;
+    border: 1px solid #dedfd7;
+    background: #fffefa;
+}
+
+.section-heading {
+    margin-bottom: 23px;
+}
+
+.section-heading h1 {
+    margin-bottom: 7px;
+    color: #202923;
+    font-size: 1.55rem;
+    font-weight: 650;
+    letter-spacing: -0.02em;
+}
+
+.section-heading p {
+    max-width: 700px;
+    margin-bottom: 0;
+    color: #5d665f;
+    font-size: 0.94rem;
+    line-height: 1.5;
+}
+
+.subsection-title {
+    margin-bottom: 12px;
+    color: #26352c;
+    font-size: 0.97rem;
+    font-weight: 650;
+}
+
+.overview-section,
+.allocation-section {
+    padding: 17px 0 19px;
+    border-top: 1px solid #e6e6df;
+}
+
+.overview-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.overview-metric {
+    display: grid;
+    gap: 6px;
+}
+
+.overview-metric span {
+    color: #68716a;
+    font-size: 0.8rem;
+}
+
+.overview-metric strong {
+    color: #25382d;
+    font-size: 1.03rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.empty-state {
+    padding: 13px 15px;
+    border: 1px dashed #d7d9d0;
+    color: #68716a;
+    font-size: 0.88rem;
+}
+
+.allocation-content {
+    display: grid;
+    grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+    align-items: center;
+    gap: 24px;
+}
+
+.allocation-donut svg {
+    display: block;
+    width: min(100%, 210px);
+    height: auto;
+    margin: 0 auto;
+}
+
+.allocation-legend {
+    display: grid;
+    gap: 9px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.allocation-legend li {
+    display: grid;
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+    color: #465149;
+    font-size: 0.86rem;
+}
+
+.legend-swatch {
+    width: 9px;
+    height: 9px;
+}
+
+.legend-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.legend-value {
+    color: #26352c;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.status-message,
+.quiet-message {
+    color: #626b64;
+    font-size: 0.9rem;
+}
+
+.risk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 11px 18px;
+    margin: 17px 0 18px;
+}
+
+.risk-actions p {
+    margin-bottom: 0;
+}
+
+button {
+    min-height: 39px;
+    padding: 8px 14px;
+    border: 1px solid #315c49;
+    border-radius: 3px;
+    background: #315c49;
+    color: #fffefa;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+    background: #254936;
+}
+
+button:focus-visible {
+    outline: 2px solid #8eab8e;
+    outline-offset: 2px;
+}
+
+button:disabled {
+    border-color: #aeb7ad;
+    background: #aeb7ad;
+    cursor: not-allowed;
+}
+
+.risk-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid #e4e5dd;
+    border-bottom: 1px solid #e4e5dd;
+}
+
+.metric {
+    min-height: 98px;
+    padding: 15px 18px 14px 0;
+}
+
+.metric + .metric {
+    padding-left: 18px;
+    border-left: 1px solid #e4e5dd;
+}
+
+.metric h3 {
+    margin-bottom: 6px;
+    color: #5d665f;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.metric p {
+    margin-bottom: 5px;
+    color: #25382d;
+    font-size: 1.25rem;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+.metric small {
+    color: #778078;
+    font-size: 0.74rem;
+}
+
+.model-assumption {
+    margin: 11px 0 0;
+    color: #737a73;
+    font-size: 0.78rem;
+}
+
+.chart-section,
+.stress-section {
+    margin-top: 25px;
+    padding-top: 19px;
+    border-top: 1px solid #e4e5dd;
+}
+
+.chart-section > h3,
+.confidence-section h3 {
+    margin-bottom: 8px;
+    color: #26352c;
+    font-size: 0.97rem;
+    font-weight: 650;
+}
+
+.histogram,
+.confidence-chart,
+.stress-chart {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.histogram svg,
+.confidence-chart svg,
+.stress-chart svg {
+    display: block;
+    width: 100%;
+    min-width: 500px;
+    height: auto;
+}
+
+.chart-explanation,
+.chart-caption {
+    margin: 8px 0 0;
+    color: #68716a;
+    font-size: 0.81rem;
+}
+
+.confidence-section {
+    margin-top: 25px;
+}
+
+.confidence-chart {
+    margin-top: 12px;
+}
+
+.secondary-button {
+    border-color: #8c6831;
+    background: #fffefa;
+    color: #76551f;
+}
+
+.secondary-button:hover:not(:disabled) {
+    background: #fbf5e8;
+}
+
+.stress-results {
+    margin-top: 16px;
+}
+
+.stress-results table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.stress-results th,
+.stress-results td {
+    padding: 9px 11px;
+    border-bottom: 1px solid #e4e5dd;
+    font-size: 0.84rem;
+}
+
+.stress-results th {
+    color: #68716a;
+    font-weight: 600;
+}
+
+.stress-message {
+    margin: 13px 0 0;
+    color: #76551f;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.error-message {
+    margin: 0 0 15px;
+    color: #9c382d;
+    font-size: 0.87rem;
+}
+
+.integration-note {
+    margin: 20px 0 0;
+    padding: 11px 13px;
+    border-left: 2px solid #a87a32;
+    background: #faf7ef;
+    color: #61583f;
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+code {
+    font-family: Consolas, monospace;
+    font-size: 0.95em;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.builder-section { padding: 20px 0; border-top: 1px solid #e4e5dd; }
+.builder-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.builder-controls label { display: flex; flex-direction: column; gap: 7px; font-size: .82rem; color: #4d5e55; }
+.builder-controls input, .builder-controls select {
+    width: 100%; min-width: 0; padding: 10px; border: 1px solid #cdd5cd;
+    border-radius: 3px; background: #fff; font: inherit; color: #22392e;
+}
+.builder-controls input:focus, .builder-controls select:focus { outline: 2px solid #39736b; outline-offset: 2px; }
+.builder-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.portfolio-table-wrap { overflow-x: auto; }
+.portfolio-table { width: 100%; border-collapse: collapse; font-size: .82rem; margin-top: 14px; }
+.portfolio-table th, .portfolio-table td { padding: 10px 7px; text-align: left; border-bottom: 1px solid #e4e5dd; }
+.portfolio-table th { color: #51645a; font-weight: 600; }
+.portfolio-table td:first-child { max-width: 380px; overflow-wrap: anywhere; }
+.portfolio-table small { display: block; color: #66746c; margin-top: 4px; }
+.portfolio-table td:not(:first-child) { white-space: nowrap; }
+.portfolio-table button { padding: 6px 9px; font-size: .78rem; }
+@media (max-width: 680px) { .builder-controls { grid-template-columns: 1fr; } }
+
+@media (max-width: 680px) {
+    main {
+        width: min(100% - 24px, 1080px);
+        margin-top: 20px;
+    }
+
+    .risk-panel {
+        padding: 19px 17px;
+    }
+
+    .overview-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 16px;
+    }
+
+    .allocation-content {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .allocation-donut svg {
+        width: min(56vw, 190px);
+    }
+}
+
+@media (max-width: 480px) {
+    .risk-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .metric {
+        min-height: auto;
+        padding: 12px 0;
+    }
+
+    .metric + .metric {
+        padding-left: 0;
+        border-top: 1px solid #e4e5dd;
+        border-left: 0;
+    }
+}
