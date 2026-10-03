@@ -1,0 +1,43 @@
+"""Run the CarbonWise dashboard locally with Python's standard library."""
+
+import argparse
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+import webbrowser
+
+
+def main() -> None:
+    """Start a local web server for the dashboard files."""
+    parser = argparse.ArgumentParser(description="Run the CarbonWise dashboard.")
+    parser.add_argument("--host", default="127.0.0.1", help="server host (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=8000, help="server port (default: 8000)")
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="do not automatically open the dashboard in a browser",
+    )
+    args = parser.parse_args()
+
+    directory = Path(__file__).resolve().parent
+    index_file = directory / "index.html"
+    if not index_file.is_file():
+        parser.error(f"Dashboard file not found: {index_file}")
+
+    handler = partial(SimpleHTTPRequestHandler, directory=str(directory))
+    try:
+        with ThreadingHTTPServer((args.host, args.port), handler) as server:
+            url = f"http://{args.host}:{args.port}/"
+            print(f"CarbonWise dashboard is running at {url}")
+            print("Press Ctrl+C to stop the server.")
+            if not args.no_browser:
+                webbrowser.open(url)
+            server.serve_forever()
+    except OSError as error:
+        parser.error(f"Could not start server at {args.host}:{args.port}: {error}")
+    except KeyboardInterrupt:
+        print("\nDashboard server stopped.")
+
+
+if __name__ == "__main__":
+    main()
